@@ -2,10 +2,10 @@ use crate::dispatch::poll_queue::DispatchQueue;
 use crate::dispatch::{packet_to_bytes, Close, SocketHandle};
 use crate::stream::{Inner, ReadinessState, Tcp, TcpLock, WriteReadiness};
 use smoltcp::iface::IpPacket as Packet;
-use smoltcp::phy::DeviceCapabilities;
+use smoltcp::phy::{DeviceCapabilities, Medium};
 use smoltcp::socket::PollAt;
 use smoltcp::time::Instant;
-use smoltcp::wire::IpRepr;
+use smoltcp::wire::{IpRepr, EthernetFrame};
 use smoltcp::wire::TcpRepr;
 use smoltcp::Error;
 use std::fmt;
@@ -92,7 +92,8 @@ impl Connection {
         let handle = self.handle();
         let mut guard = self.socket.lock().await;
         let tcp = &mut guard.tcp;
-        let r = tcp.dispatch(timestamp, capabilities, |(i, t)| {
+        //always Medium::Ip
+        let r = tcp.dispatch(timestamp, capabilities.max_transmission_unit, |(i, t)| {
             let p = Packet::Tcp((i, t));
             packet_to_bytes(p, &mut buf, &capabilities.checksum)?;
             let ns = buf.len();

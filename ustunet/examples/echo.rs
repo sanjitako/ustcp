@@ -6,21 +6,22 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use ustunet;
 use ustunet::TcpListener;
 
-#[derive(FromArgs)]
-/// Echoing server on every address.
-struct EchoUp {
-    /// tun device owned by current user
-    #[argh(option)]
-    tun: String,
-}
+// #[derive(FromArgs)]
+// /// Echoing server on every address.
+// struct EchoUp {
+//     /// tun device owned by current user
+//     #[argh(option)]
+//     tun: String,
+// }
 
 #[tokio::main]
 async fn main() {
     pretty_env_logger::init();
-    let up: EchoUp = argh::from_env();
-    let mut echo_server = TcpListener::bind(up.tun).unwrap();
-
+    // let up: EchoUp = argh::from_env();
+    info!("start");
+    let mut echo_server = TcpListener::bind("tuna").unwrap();
     while let Some(mut socket) = echo_server.next().await {
+        println!("good");
         debug!("accepted new tcp stream");
         let mut buf = vec![0u8; 1024];
         tokio::spawn(async move {

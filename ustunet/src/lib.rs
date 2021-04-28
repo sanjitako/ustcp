@@ -17,11 +17,3 @@ pub enum Error {
     #[snafu(display("IO error {}", source))]
     Io { source: std::io::Error },
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
