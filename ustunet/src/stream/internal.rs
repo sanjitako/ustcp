@@ -1,6 +1,6 @@
 use crate::dispatch::poll_queue::DispatchQueue;
 use crate::dispatch::{packet_to_bytes, Close, SocketHandle};
-use crate::stream::{Inner, ReadinessState, Tcp, TcpLock, WriteReadiness};
+use crate::stream::{TcpInner, ReadinessState, Tcp, TcpLock, WriteReadiness, UdpLock};
 use smoltcp::iface::IpPacket as Packet;
 use smoltcp::phy::{DeviceCapabilities, Medium};
 use smoltcp::socket::PollAt;
@@ -14,8 +14,14 @@ use std::ops::DerefMut;
 
 /// Reference to TcpSocket.
 /// Notify readers and writers after IO activities.
-pub(crate) struct Connection {
+pub(crate) struct TcpConnection {
     pub(crate) socket: TcpLock,
+    inner: RwStatus,
+}
+/// Reference to TcpSocket.
+/// Notify readers and writers after IO activities.
+pub(crate) struct UdpConnection {
+    pub(crate) socket: UdpLock,
     inner: RwStatus,
 }
 
@@ -32,19 +38,19 @@ struct RwStatus {
     writer_dropped: bool,
 }
 
-impl fmt::Debug for Connection {
+impl fmt::Debug for TcpConnection {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "Connection")
     }
 }
 
-impl Connection {
+impl TcpConnection {
     pub(super) fn new(
         socket: TcpLock,
         addr: SocketHandle,
         read_readiness: ReadinessState,
         write_readiness: WriteReadiness,
-    ) -> Connection {
+    ) -> TcpConnection {
         let inner = RwStatus {
             handle: addr,
             read_readiness,
@@ -52,8 +58,9 @@ impl Connection {
             writer_dropped: false,
             reader_dropped: false,
         };
-        Connection { socket, inner }
+        TcpConnection { socket, inner }
     }
+
     /// Process incoming packet and queue for polling.
     pub async fn process(
         &mut self,
@@ -151,7 +158,7 @@ impl Connection {
             return;
         }
         let mut guard = socket.lock().await;
-        let Inner { tcp, .. } = guard.deref_mut();
+        let TcpInner { tcp, .. } = guard.deref_mut();
         tcp.close();
         let mut poll_at = tcp.poll_at();
         if inner.both_dropped() && poll_at == PollAt::Ingress {
@@ -164,6 +171,24 @@ impl Connection {
     }
 }
 
+impl UdpConnection {
+    pub(super) fn new(
+        socket: UdpLock,
+        addr: SocketHandle,
+        read_readiness: ReadinessState,
+        write_readiness: WriteReadiness,
+    ) -> UdpConnection {
+        let inner = RwStatus {
+            handle: addr,
+            read_readiness,
+            write_readiness,
+            writer_dropped: false,
+            reader_dropped: false,
+        };
+        UdpConnection { socket, inner }
+    }
+
+}
 impl RwStatus {
     /// Notify reader or writer after reaching the end.
     /// TcpSocket state may change after either processing or dispatching.

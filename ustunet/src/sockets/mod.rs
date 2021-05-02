@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::net::SocketAddr;
 
 pub use super::util::convert_to_socket_address;
-use smoltcp::socket::TcpSocketBuffer;
+use smoltcp::socket::{TcpSocketBuffer, UdpSocket, UdpSocketBuffer};
 use smoltcp::socket::{TcpSocket, TcpState};
 
 use crate::stream::TcpStream;
@@ -12,7 +12,7 @@ use log::{error, info};
 use super::mpsc::{self};
 
 use crate::dispatch::poll_queue::{DispatchQueue, QueueUpdater};
-use crate::stream::internal::Connection;
+use crate::stream::internal::TcpConnection;
 
 use crate::dispatch::{Close, CloseSender, SocketHandle};
 use crate::time::Clock;
@@ -24,9 +24,21 @@ use std::fmt::Formatter;
 use tokio::sync::mpsc::Sender;
 
 /// An extensible set of sockets.
-pub(crate) struct SocketPool {
+pub(crate) struct SocketTcpPool {
     pub(crate) queue: DispatchQueue,
-    sockets: HashMap<AddrPair, Connection>,
+    sockets: HashMap<AddrPair, TcpConnection>,
+    /// Received tcp connections.
+    new_conns: mpsc::Sender<TcpStream>,
+    /// Queue a socket to be polled for egress after a period.
+    send_poll: QueueUpdater,
+    shutdown_builder: CloseSender,
+    capabilities: DeviceCapabilities,
+    clock: Clock,
+}
+
+pub(crate) struct SocketUdpPool{
+    pub(crate) queue: DispatchQueue,
+    sockets: HashMap<AddrPair, TcpConnection>,
     /// Received tcp connections.
     new_conns: mpsc::Sender<TcpStream>,
     /// Queue a socket to be polled for egress after a period.
@@ -43,7 +55,7 @@ pub struct AddrPair {
     pub local: SocketAddr,
 }
 
-impl SocketPool {
+impl SocketTcpPool {
     /// Create a socket set using the provided storage.
     pub fn new(
         send_poll: QueueUpdater,
@@ -52,9 +64,9 @@ impl SocketPool {
         tx: Sender<TcpStream>,
         queue: DispatchQueue,
         clock: Clock,
-    ) -> SocketPool {
+    ) -> SocketTcpPool {
         let sockets = HashMap::new();
-        SocketPool {
+        SocketTcpPool {
             sockets,
             new_conns: tx,
             send_poll,
@@ -93,6 +105,7 @@ impl SocketPool {
             .await?;
         Ok(reply)
     }
+
     pub(crate) async fn dispatch(&mut self, buf: &mut Vec<u8>, addr: AddrPair) {
         assert_eq!(0, buf.len(), "Given buffer should be empty.");
         let timestamp = self.clock.timestamp();
@@ -136,7 +149,7 @@ impl SocketPool {
             }
         } else if tcp_repr.control == TcpControl::Syn {
             debug!("creating socket {:?}", pair);
-            let socket = open_socket(pair.local)?;
+            let socket = open_tcp_socket(pair.local)?;
             let (tcp, connection) = TcpStream::new(
                 socket,
                 self.send_poll.clone(),
@@ -156,7 +169,7 @@ impl SocketPool {
     }
 }
 
-fn open_socket(local: SocketAddr) -> Result<TcpSocket<'static>, smoltcp::Error> {
+fn open_tcp_socket(local: SocketAddr) -> Result<TcpSocket<'static>, smoltcp::Error> {
     let mut socket = create_tcp_socket();
     if !socket.is_open() {
         info!("opening tcp listener for {:?}", local);
@@ -169,15 +182,37 @@ fn open_socket(local: SocketAddr) -> Result<TcpSocket<'static>, smoltcp::Error> 
     Ok(socket)
 }
 
+// fn open_udp_socket(local: SocketAddr) -> Result<UdpSocket<'static>, smoltcp::Error> {
+//     let mut socket = create_udp_socket();
+//     if !socket.is_open() {
+//         info!("opening udp listener for {:?}",local);
+//         socket.bind(local).map_err(|e| {
+//             error!("udp can't bind {:?}",e);
+//             e
+//         })?;
+//     }
+//     // ignore
+//     // socket.set_hop_limit(
+//     Ok(socket)
+// }
+
 const RX_BUF_SIZE: usize = 32768;
 const TX_BUF_SIZE: usize = RX_BUF_SIZE;
+const UDP_META_SIZE: usize = 1024;
+
 fn create_tcp_socket<'a>() -> TcpSocket<'a> {
     let tcp1_rx_buffer = TcpSocketBuffer::new(vec![0; RX_BUF_SIZE]);
     let tcp1_tx_buffer = TcpSocketBuffer::new(vec![0; TX_BUF_SIZE]);
     TcpSocket::new(tcp1_rx_buffer, tcp1_tx_buffer)
 }
 
-impl fmt::Debug for SocketPool {
+// fn create_udp_socket<'a>() -> UdpSocket<'a> {
+//     let udp_rx_buffer = UdpSocketBuffer::new(vec![0; UDP_META_SIZE], vec![0; RX_BUF_SIZE]);
+//     let udp_tx_buffer = UdpSocketBuffer::new(vec![0; UDP_META_SIZE], vec![0; TX_BUF_SIZE]);
+//     UdpSocket::new(udp_rx_buffer, udp_tx_buffer)
+// }
+
+impl fmt::Debug for SocketTcpPool {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "SocketPool")?;
         Ok(())

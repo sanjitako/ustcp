@@ -56,7 +56,7 @@ TUN allows a user to send and receive IP packets on the interface with no permis
 Create a TUN interface with name set to `tuna`, and ownership given to user `yuki`.
 And bring it up.
 
-    sudo ip tuntap add dev tuna mode tun user yuki
+    sudo ip Tuntap add dev tuna mode tun user yuki
     sudo ip link set up dev tuna
 
 Give it an IP address (and a subnet mask) that's not currently in use:

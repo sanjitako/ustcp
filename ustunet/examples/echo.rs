@@ -21,7 +21,6 @@ async fn main() {
     info!("start");
     let mut echo_server = TcpListener::bind("tuna").unwrap();
     while let Some(mut socket) = echo_server.next().await {
-        println!("good");
         debug!("accepted new tcp stream");
         let mut buf = vec![0u8; 1024];
         tokio::spawn(async move {

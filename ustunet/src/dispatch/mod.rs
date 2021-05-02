@@ -1,10 +1,10 @@
 use super::mpsc::{self};
-use crate::sockets::{AddrPair, SocketPool};
+use crate::sockets::{AddrPair, SocketTcpPool};
 use crate::stream::TcpStream;
 use crate::time::Clock;
 use smoltcp::iface::IpPacket as Packet;
 use smoltcp::phy::{ChecksumCapabilities, DeviceCapabilities};
-use smoltcp::wire::{IpProtocol, Ipv6Packet, Ipv6Repr};
+use smoltcp::wire::{IpProtocol, Ipv6Packet, Ipv6Repr, UdpRepr, UdpPacket};
 use smoltcp::wire::{IpRepr, Ipv4Packet, Ipv4Repr, TcpPacket, TcpRepr};
 use smoltcp::Error;
 use std::io;
@@ -33,7 +33,7 @@ type ProcessingReply = Option<(IpRepr, TcpRepr<'static>)>;
 pub(crate) type SocketHandle = AddrPair;
 
 pub struct Interface {
-    sockets: SocketPool,
+    sockets: SocketTcpPool,
     checksum_caps: ChecksumCapabilities,
 }
 
@@ -84,7 +84,7 @@ async fn io_loop(
     let clock = Clock::new();
     let (shutdown_builder, closing) = shutdown_channel();
     let (queue, queue_sender, poll_recv) = DispatchQueue::new(clock);
-    let sockets = SocketPool::new(
+    let sockets = SocketTcpPool::new(
         queue_sender,
         shutdown_builder,
         dev_caps.clone(),
@@ -269,6 +269,18 @@ impl Interface {
         let reply = self.sockets.process(ip_repr, tcp_repr).await?;
         Ok(reply)
     }
+    // async fn process_udp(
+    //     &mut self,
+    //     ip_repr: IpRepr,
+    //     ip_payload: &[u8],
+    // ) -> Result<Option<(IpRepr,UdpRepr<'static>), smoltcp::Error>>{
+    //     trace!("processing udqwep to {:?}",ip_repr);
+    //     let udp_packet = UdpPacket::new_checked(ip_payload)?;
+    //     let (src_addr,dst_addr) = (ip_repr.src_addr(),ip_repr.dst_addr());
+    //     let udp_repr = UdpRepr::parse(&udp_packet,&src_addr,&dst_addr,&self.checksum_caps)?;
+    //     let reply = self.sockets.process(ip_repr,udp_repr).await?;
+    //     Ok(reply)
+    // }
 }
 
 pub(crate) fn packet_to_bytes(
