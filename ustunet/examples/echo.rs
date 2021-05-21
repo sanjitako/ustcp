@@ -31,7 +31,8 @@ async fn main() {
                     break;
                 }
                 let content = &buf[..n];
-                eprintln!("read {:?} bytes: {:?}", n, content);
+                eprintln!("read {:?} bytes: {:?}", n,content);
+                eprintln!("content : {:?}",String::from_utf8_lossy(content));
                 let n = socket.write(content).await.expect("write failed");
                 println!("Written {} bytes", n);
             }

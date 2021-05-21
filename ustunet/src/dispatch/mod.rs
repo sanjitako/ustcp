@@ -188,6 +188,7 @@ async fn io_loop(
         tokio::task::yield_now().await;
     }
 }
+
 impl Interface {
     pub(crate) async fn dispatch(&mut self, write_buf: &mut Vec<u8>, addr: AddrPair) {
         self.sockets.dispatch(write_buf, addr).await;
@@ -269,18 +270,6 @@ impl Interface {
         let reply = self.sockets.process(ip_repr, tcp_repr).await?;
         Ok(reply)
     }
-    // async fn process_udp(
-    //     &mut self,
-    //     ip_repr: IpRepr,
-    //     ip_payload: &[u8],
-    // ) -> Result<Option<(IpRepr,UdpRepr<'static>), smoltcp::Error>>{
-    //     trace!("processing udqwep to {:?}",ip_repr);
-    //     let udp_packet = UdpPacket::new_checked(ip_payload)?;
-    //     let (src_addr,dst_addr) = (ip_repr.src_addr(),ip_repr.dst_addr());
-    //     let udp_repr = UdpRepr::parse(&udp_packet,&src_addr,&dst_addr,&self.checksum_caps)?;
-    //     let reply = self.sockets.process(ip_repr,udp_repr).await?;
-    //     Ok(reply)
-    // }
 }
 
 pub(crate) fn packet_to_bytes(

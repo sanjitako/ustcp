@@ -1,6 +1,6 @@
 use crate::dispatch::poll_queue::DispatchQueue;
 use crate::dispatch::{packet_to_bytes, Close, SocketHandle};
-use crate::stream::{TcpInner, ReadinessState, Tcp, TcpLock, WriteReadiness, UdpLock};
+use crate::stream::{TcpInner, ReadinessState, Tcp, TcpLock, WriteReadiness};
 use smoltcp::iface::IpPacket as Packet;
 use smoltcp::phy::{DeviceCapabilities, Medium};
 use smoltcp::socket::PollAt;
@@ -16,12 +16,6 @@ use std::ops::DerefMut;
 /// Notify readers and writers after IO activities.
 pub(crate) struct TcpConnection {
     pub(crate) socket: TcpLock,
-    inner: RwStatus,
-}
-/// Reference to TcpSocket.
-/// Notify readers and writers after IO activities.
-pub(crate) struct UdpConnection {
-    pub(crate) socket: UdpLock,
     inner: RwStatus,
 }
 
@@ -171,24 +165,6 @@ impl TcpConnection {
     }
 }
 
-impl UdpConnection {
-    pub(super) fn new(
-        socket: UdpLock,
-        addr: SocketHandle,
-        read_readiness: ReadinessState,
-        write_readiness: WriteReadiness,
-    ) -> UdpConnection {
-        let inner = RwStatus {
-            handle: addr,
-            read_readiness,
-            write_readiness,
-            writer_dropped: false,
-            reader_dropped: false,
-        };
-        UdpConnection { socket, inner }
-    }
-
-}
 impl RwStatus {
     /// Notify reader or writer after reaching the end.
     /// TcpSocket state may change after either processing or dispatching.
