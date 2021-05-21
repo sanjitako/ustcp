@@ -11,7 +11,6 @@ use std::task::Context;
 use tokio::io::split;
 use tokio_fd::AsyncFd;
 use tun::Device as TunDevice;
-use tracing::stdlib::net::UdpSocket;
 
 #[derive(Debug, Snafu)]
 pub enum TunError {
@@ -24,9 +23,9 @@ type Result<T, E = TunError> = std::result::Result<T, E>;
 pub struct TcpListener {
     receiver: Receiver<TcpStream>,
 }
-pub struct UdpListener{
-    receiver: Receiver<>
-}
+// pub struct UdpListener{
+//     receiver: Receiver<>
+// }
 
 impl TcpListener {
     pub fn bind<S: AsRef<str>>(name: S) -> Result<TcpListener> {
