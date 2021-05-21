@@ -4,7 +4,7 @@ use crate::stream::TcpStream;
 use crate::time::Clock;
 use smoltcp::iface::IpPacket as Packet;
 use smoltcp::phy::{ChecksumCapabilities, DeviceCapabilities};
-use smoltcp::wire::{IpProtocol, Ipv6Packet, Ipv6Repr, UdpRepr, UdpPacket};
+use smoltcp::wire::{IpProtocol, Ipv6Packet, Ipv6Repr};
 use smoltcp::wire::{IpRepr, Ipv4Packet, Ipv4Repr, TcpPacket, TcpRepr};
 use smoltcp::Error;
 use std::io;

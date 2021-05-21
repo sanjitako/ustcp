@@ -179,18 +179,18 @@ fn open_tcp_socket(local: SocketAddr) -> Result<TcpSocket<'static>, smoltcp::Err
     socket.set_ack_delay(Some(Duration::from_millis(0)));
     Ok(socket)
 }
-
-fn open_udp_socket(local: SocketAddr) -> Result<UdpSocket<'static>, smoltcp::Error> {
-    let mut socket = create_udp_socket();
-    if !socket.is_open() {
-        info!("opening udp listener for {:?}",local);
-        socket.bind(local).map_err(|e| {
-            error!("udp can't bind {:?}",e);
-            e
-        })?;
-    }
-    Ok(socket)
-}
+//
+// fn open_udp_socket(local: SocketAddr) -> Result<UdpSocket<'static>, smoltcp::Error> {
+//     let mut socket = create_udp_socket();
+//     if !socket.is_open() {
+//         info!("opening udp listener for {:?}",local);
+//         socket.bind(local).map_err(|e| {
+//             error!("udp can't bind {:?}",e);
+//             e
+//         })?;
+//     }
+//     Ok(socket)
+// }
 
 const RX_BUF_SIZE: usize = 32768;
 const TX_BUF_SIZE: usize = RX_BUF_SIZE;
@@ -202,11 +202,11 @@ fn create_tcp_socket<'a>() -> TcpSocket<'a> {
     TcpSocket::new(tcp1_rx_buffer, tcp1_tx_buffer)
 }
 
-fn create_udp_socket<'a>() -> UdpSocket<'a> {
-    let udp_rx_buffer = UdpSocketBuffer::new(vec![0; UDP_META_SIZE], vec![0; RX_BUF_SIZE]);
-    let udp_tx_buffer = UdpSocketBuffer::new(vec![0; UDP_META_SIZE], vec![0; TX_BUF_SIZE]);
-    UdpSocket::new(udp_rx_buffer, udp_tx_buffer)
-}
+// fn create_udp_socket<'a>() -> UdpSocket<'a> {
+//     let udp_rx_buffer = UdpSocketBuffer::new(vec![0; UDP_META_SIZE], vec![0; RX_BUF_SIZE]);
+//     let udp_tx_buffer = UdpSocketBuffer::new(vec![0; UDP_META_SIZE], vec![0; TX_BUF_SIZE]);
+//     UdpSocket::new(udp_rx_buffer, udp_tx_buffer)
+// }
 
 impl fmt::Debug for SocketTcpPool {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {

@@ -2,7 +2,7 @@
 use super::SocketLock;
 use crate::dispatch::poll_queue::QueueUpdater;
 use crate::dispatch::{Close, CloseSender, HalfCloseSender, SocketHandle};
-use crate::sockets::{AddrPair, SocketUdpPool};
+use crate::sockets::{AddrPair};
 use crate::stream::internal::{TcpConnection};
 use futures::future::poll_fn;
 use futures::io::Error;
@@ -11,8 +11,6 @@ use futures::task::Poll;
 use smoltcp::socket::TcpSocket;
 use smoltcp::socket::TcpState;
 use std::borrow::BorrowMut;
-use std::fmt;
-use std::fmt::Formatter;
 use std::io;
 use std::net::SocketAddr;
 use std::ops::DerefMut;
@@ -22,6 +20,8 @@ use std::sync::Arc;
 use std::task;
 use std::task::{Context, Waker};
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
+use core::fmt;
+use std::fmt::Formatter;
 
 pub(crate) type ReadinessState = Arc<std_sync::Mutex<SharedState>>;
 pub(crate) type WriteReadiness = Arc<std_sync::Mutex<SharedState>>;
@@ -400,6 +400,13 @@ impl Drop for TcpWriteHalf {
     fn drop(&mut self) {
         debug!("Drop WriteHalf {:?}", self.shutdown_notifier);
         self.shutdown_notifier.notify();
+    }
+}
+
+impl fmt::Debug for TcpStream {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "UsTcpStream({:?})", self.addr)?;
+        Ok(())
     }
 }
 
